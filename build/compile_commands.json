@@ -1,0 +1,7 @@
+[
+{
+  "directory": "E:/C/sjjg/build",
+  "command": "C:\\mingw64\\bin\\g++.exe  @CMakeFiles/run.dir/includes_CXX.rsp -g -std=c++17 -Ofast -lpthread -o CMakeFiles\\run.dir\\main.cpp.obj -c E:\\C\\sjjg\\main.cpp",
+  "file": "E:/C/sjjg/main.cpp"
+}
+]
