@@ -73,6 +73,10 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k) {
                 xx.parent_vertex=temp.parent_vertex;
                 xx.vertex=v_k;
                 L_temp_599[temp.vertex].push_back(xx);
+                if(temp.vertex==v_k){
+                    Temp_L_vk_599[used_id][v_k].push_back({xx.distance, xx.hop});
+                    Temp_L_vk_changes.push(v_k);
+                }
                 dist_hop_599[used_id][temp.vertex]={xx.distance,xx.hop};
                 dist_hop_changes.push(temp.vertex);
 
