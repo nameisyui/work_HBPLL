@@ -2,13 +2,15 @@
 #include <boost/heap/fibonacci_heap.hpp>
 #include <Hop/HBPLL_two_hop_labels.h>
 
-struct HBPLL_v1_node {
+struct HBPLL_v1_node
+{
 public:
     int vertex, parent_vertex, hop;
     double priority_value;
 };
 
-bool operator<(HBPLL_v1_node const &x, HBPLL_v1_node const &y) {
+bool operator<(HBPLL_v1_node const &x, HBPLL_v1_node const &y)
+{
     return x.priority_value > y.priority_value;
 }
 typedef typename boost::heap::fibonacci_heap<HBPLL_v1_node>::handle_type HBPLL_v1_node_handle;
@@ -19,7 +21,8 @@ typedef typename boost::heap::fibonacci_heap<HBPLL_v1_node>::handle_type HBPLL_v
  * @param N                     顶点总个数
  * @param upper_k               遍历边数上限, 即在一条路径上遍历超过了k条边则停止遍历, 一般情况下不会用到
  */
-void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k) {
+void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
+{
     /* get unique thread id */
     mtx_599[max_N_599 - 1].lock();
     int used_id = Qid_599.front();
@@ -30,7 +33,8 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k) {
     queue<int> Temp_L_vk_changes;
     mtx_599[v_k].lock();
     int L_vk_size = L_temp_599[v_k].size();
-    for (int i = 0; i < L_vk_size; i++) {
+    for (int i = 0; i < L_vk_size; i++)
+    {
         int L_vk_vertex = L_temp_599[v_k][i].vertex;
         Temp_L_vk_599[used_id][L_vk_vertex].push_back({L_temp_599[v_k][i].distance, L_temp_599[v_k][i].hop});
         Temp_L_vk_changes.push(L_vk_vertex);
@@ -42,76 +46,92 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k) {
     dist_hop_599[used_id][v_k] = {0, 0};
     dist_hop_changes.push(v_k);
     /* {vertex, hop} -> ptr */
-    map <pair<int, int>, pair<HBPLL_v1_node_handle, double>> Q_handle;
-    boost::heap::fibonacci_heap <HBPLL_v1_node> Q;
+    map<pair<int, int>, pair<HBPLL_v1_node_handle, double>> Q_handle;
+    boost::heap::fibonacci_heap<HBPLL_v1_node> Q;
     HBPLL_v1_node node;
     node.vertex = v_k;
     node.parent_vertex = v_k;
     node.hop = 0;
     node.priority_value = 0;
-    //Q.push({node})返回一个指针
+    // Q.push({node})返回一个指针
     Q_handle[{v_k, 0}] = {Q.push({node}), node.priority_value};
     two_hop_label_v1 xx;
     long long int new_label_num = 0;
-    while (Q.size() > 0) {//start
-        HBPLL_v1_node temp=Q.top();Q.pop();
-        if(v_k<=temp.vertex){
-            double min_distance=std::numeric_limits<double>::max();
-            for(auto it:L_temp_599[temp.vertex] ){
-                if(Temp_L_vk_599[used_id][it.vertex].size()==0){
-                    continue;
-                }
-                double temp_distance=it.distance+Temp_L_vk_599[used_id][it.vertex][0].first;
-                double temp_hop=it.hop+Temp_L_vk_599[used_id][it.vertex][0].second;
-                if(temp_hop<=upper_k&&min_distance>temp_distance){
-                    min_distance=temp_distance;
+    while (Q.size() > 0)
+    {
+        //------------------Begin TODO------------------
+        HBPLL_v1_node temp = Q.top();
+        Q.pop();
+        if (v_k <= temp.vertex)
+        {
+            double min_distance = std::numeric_limits<double>::max();
+            for (auto it_1 : L_temp_599)
+            {
+                for (auto it_2 : it_1)
+                {
+                    for (auto it_3 : it_1)
+                    {
+                        if (it_2.parent_vertex == v_k and it_3.parent_vertex == temp.vertex and it_2.hop + it_3.hop <= temp.hop)
+                        {
+                            min_distance = min(min_distance, it_2.distance + it_3.distance);
+                        }
+                    }
                 }
             }
-            if(min_distance>temp.priority_value){
-                xx.distance=temp.priority_value;
-                xx.hop=temp.hop;
-                xx.parent_vertex=temp.parent_vertex;
-                xx.vertex=v_k;
+            if (min_distance > temp.priority_value)
+            {
+                xx.distance = temp.priority_value;
+                xx.hop = temp.hop;
+                xx.parent_vertex = temp.parent_vertex;
+                xx.vertex = v_k;
                 L_temp_599[temp.vertex].push_back(xx);
-                if(temp.vertex==v_k){
+                if (temp.vertex == v_k)
+                {
                     Temp_L_vk_599[used_id][v_k].push_back({xx.distance, xx.hop});
                     Temp_L_vk_changes.push(v_k);
                 }
-                dist_hop_599[used_id][temp.vertex]={xx.distance,xx.hop};
+                dist_hop_599[used_id][temp.vertex] = {xx.distance, xx.hop};
                 dist_hop_changes.push(temp.vertex);
 
-                if(temp.hop+1<=upper_k){
-                    auto neighbors=ideal_graph_599[xx.vertex];               
-                    for(auto it:neighbors){
-                        double dv=xx.distance+it.second;
-                        double Q_vh=std::numeric_limits<double>::max();
-                        if(Q_handle.find({it.first,temp.hop+1})!=Q_handle.end()){
-                            double Q_vh=min(Q_vh,Q_handle[{it.first,temp.hop+1}].second);
-                            if(dv<Q_vh){
-                                auto ptr=Q_handle[{it.first,temp.hop+1}].first;
-                                auto new_node=*ptr;
-                                new_node.priority_value=dv;
-                                Q.update(ptr,
-                                new_node);   
+                if (temp.hop + 1 <= upper_k)
+                {
+                    auto neighbors = ideal_graph_599[temp.vertex];
+
+                    for (auto it : neighbors)
+                    {
+                        double dv = xx.distance + it.second;
+                        double Q_vh = std::numeric_limits<double>::max();
+                        if (Q_handle.find({it.first, temp.hop + 1}) != Q_handle.end())
+                        {
+                            double Q_vh = min(Q_vh, Q_handle[{it.first, temp.hop + 1}].second);
+                            if (dv < Q_vh)
+                            {
+                                auto ptr = Q_handle[{it.first, temp.hop + 1}].first;
+                                auto new_node = *ptr;
+                                new_node.priority_value = dv;
+                                Q.update(ptr, new_node);
                             }
                         }
-                        else if(Q_handle.find({it.first,temp.hop+1})==Q_handle.end()){
-                            HBPLL_v1_node new_node={it.first,xx.vertex,temp.hop+1,dv};//?前驱是谁
-                            Q_handle[{it.first,temp.hop+1}]={Q.push(new_node),dv};
+                        else
+                        {
+                            HBPLL_v1_node new_node = {it.first, xx.vertex, temp.hop + 1, dv};
+                            Q_handle[{it.first, temp.hop + 1}] = {Q.push(new_node), dv};
                         }
-                    }           
+                    }
                 }
             }
-            //ideal_graph_599
-            
-        }   
+            //-------------------END TODO-------------------
+            // exit(1);
+        }
     }
-    while (Temp_L_vk_changes.size() > 0) {
-        vector < pair < double, int >> ().swap(Temp_L_vk_599[used_id][Temp_L_vk_changes.front()]);
+    while (Temp_L_vk_changes.size() > 0)
+    {
+        vector<pair<double, int>>().swap(Temp_L_vk_599[used_id][Temp_L_vk_changes.front()]);
         Temp_L_vk_changes.pop();
     }
 
-    while (dist_hop_changes.size() > 0) {
+    while (dist_hop_changes.size() > 0)
+    {
         dist_hop_599[used_id][dist_hop_changes.front()] = {std::numeric_limits<double>::max(), 0};
         dist_hop_changes.pop();
     }
@@ -125,52 +145,45 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k) {
     mtx_599[max_N_599 - 1].unlock();
 }
 
-
 /**
  * 最短距离查询函数
  * @param L         索引集
  * @param source    查询起点
  * @param terminal  查询终点
- * @param hop_cst   边数边数(跳数)限制
+ * @param hop_cst   查询边数(跳数)限制
  * @return          最短距离
  */
-double HB_extract_distance_v1(vector<vector<two_hop_label_v1>> &L, int source, int terminal, int hop_cst) {
+double HB_extract_distance_v1(vector<vector<two_hop_label_v1>> &L, int source, int terminal, int hop_cst)
+{
     /*return std::numeric_limits<double>::max() is not connected*/
-    if (hop_cst < 0) {
+    if (hop_cst < 0)
+    {
         return std::numeric_limits<double>::max();
     }
-    if (source == terminal) {
+    if (source == terminal)
+    {
         return 0;
-    } else if (hop_cst == 0) {
+    }
+    else if (hop_cst == 0)
+    {
         return std::numeric_limits<double>::max();
     }
 
-    
-
-    /**
-     * TODO: Code needs to be completed
-     *
-     *
-     *
-     */
     double distance = std::numeric_limits<double>::max();
-    
-
-    vector<two_hop_label_v1>::iterator it_s=L[source].begin();
-    vector<two_hop_label_v1>::iterator it_t=L[terminal].begin();
-    while(it_s!=L[source].end()&&it_t!=L[terminal].end()){
-        if(it_s->vertex==it_t->vertex){
-            if(it_s->hop+it_t->hop<=hop_cst){
-                distance=min(distance,it_s->distance+it_t->distance);
+    //------------------Begin TODO------------------
+    for (auto it_s = L[source].begin(); it_s != L[source].end(); it_s++)
+    {
+        for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
+        {
+            if (it_s->vertex == it_t->vertex and it_s->hop + it_t->hop <= hop_cst)
+            {
+                distance = min(distance, it_s->distance + it_t->distance);
             }
-            it_s++;it_t++;
         }
-        else if(it_s->vertex<it_t->vertex)it_s++;
-        else it_t++;
     }
+    //-------------------END TODO-------------------
     return distance;
 }
-
 
 /**
  * 最短距离查询函数
@@ -180,41 +193,43 @@ double HB_extract_distance_v1(vector<vector<two_hop_label_v1>> &L, int source, i
  * @param hop_cst   查询边数(跳数)限制
  * @return          路径上边组成的集合, 如最短路径是 1->2->3 则返回 [{1,2},{2,3}]
  */
-vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, int source, int terminal, int hop_cst) {
+vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, int source, int terminal, int hop_cst)
+{
     vector<pair<int, int>> paths;
-    if (source == terminal) {
+    if (source == terminal)
+    {
         return paths;
     }
-    int mid=0,s_pre=0,t_pre=0;
-    int s_hop_cst=0,t_hop_cst=0;
+    //------------------Begin TODO------------------
     double distance = std::numeric_limits<double>::max();
-    vector<two_hop_label_v1>::iterator it_s=L[source].begin();
-    vector<two_hop_label_v1>::iterator it_t=L[terminal].begin();
-    while(it_s!=L[source].end()&&it_t!=L[terminal].end()){
-        if(it_s->vertex==it_t->vertex){
-            if(it_s->hop+it_t->hop<=hop_cst){
-                if(distance>it_s->distance+it_t->distance){
-                    distance=it_s->distance+it_t->distance;
-                    mid=it_s->vertex;
-                    s_pre=it_s->parent_vertex;
-                    t_pre=it_t->parent_vertex;
-                    s_hop_cst=it_s->hop;
-                    t_hop_cst=it_t->hop;
-                }
+    int mid = 0, s_pre = 0, t_pre = 0;
+    int s_hop_cst = 0, t_hop_cst = 0;
+    for (auto it_s = L[source].begin(); it_s != L[source].end(); it_s++)
+    {
+        for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
+        {
+            if (it_s->vertex == it_t->vertex and it_s->hop + it_t->hop <= hop_cst and distance > it_s->distance + it_t->distance)
+            {
+                distance = it_s->distance + it_t->distance;
+                distance = it_s->distance + it_t->distance;
+                mid = it_s->vertex;
+                s_pre = it_s->parent_vertex;
+                t_pre = it_t->parent_vertex;
+                s_hop_cst = it_s->hop;
+                t_hop_cst = it_t->hop;
             }
-            it_s++;it_t++;
         }
-        else if(it_s->vertex<it_t->vertex)it_s++;
-        else it_t++;
     }
-    paths.push_back({s_pre,mid});paths.push_back({mid,t_pre});
-    //recursive
-    vector<pair<int, int>> paths_s,paths_t;
-    paths_s=HB_extract_path_v1(L,source,s_pre,s_hop_cst-1);
-    paths_t=HB_extract_path_v1(L,t_pre,terminal,t_hop_cst-1);
-    //connect paths
-    paths.insert(paths.end(),paths_t.begin(),paths_t.end());
-    paths_s.insert(paths_s.end(),paths.begin(),paths.end());
+    paths.push_back({s_pre, mid});
+    paths.push_back({mid, t_pre});
+    // recursive
+    vector<pair<int, int>> paths_s, paths_t;
+    paths_s = HB_extract_path_v1(L, source, s_pre, s_hop_cst - 1);
+    paths_t = HB_extract_path_v1(L, t_pre, terminal, t_hop_cst - 1);
+    // connect paths
+    paths.insert(paths.end(), paths_t.begin(), paths_t.end());
+    paths_s.insert(paths_s.end(), paths.begin(), paths.end());
     paths.swap(paths_s);
+    //-------------------END TODO-------------------
     return paths;
 }
