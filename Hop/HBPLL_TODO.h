@@ -127,7 +127,7 @@ double HB_extract_distance_v1(vector<vector<two_hop_label_v1>> &L, int source, i
         return std::numeric_limits<double>::max();
     }
 
-    double distance = std::numeric_limits<double>::max();
+    
 
     /**
      * TODO: Code needs to be completed
@@ -135,6 +135,9 @@ double HB_extract_distance_v1(vector<vector<two_hop_label_v1>> &L, int source, i
      *
      *
      */
+    double distance = std::numeric_limits<double>::max();
+    
+
     vector<two_hop_label_v1>::iterator it_s=L[source].begin();
     vector<two_hop_label_v1>::iterator it_t=L[terminal].begin();
     while(it_s!=L[source].end()&&it_t!=L[terminal].end()){
@@ -164,13 +167,33 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
     if (source == terminal) {
         return paths;
     }
-    
-    /**
-     * TODO: Code needs to be completed
-     *
-     *
-     *
-     */
-    
+    int mid=0,s_pre=0,t_pre=0;
+    double distance = std::numeric_limits<double>::max();
+    vector<two_hop_label_v1>::iterator it_s=L[source].begin();
+    vector<two_hop_label_v1>::iterator it_t=L[terminal].begin();
+    while(it_s!=L[source].end()&&it_t!=L[terminal].end()){
+        if(it_s->vertex==it_t->vertex){
+            if(it_s->hop+it_t->hop<=hop_cst){
+                if(distance>it_s->distance+it_t->distance){
+                    distance=it_s->distance+it_t->distance;
+                    mid=it_s->vertex;
+                    s_pre=it_s->parent_vertex;
+                    t_pre=it_t->parent_vertex;
+                }
+            }
+            it_s++;it_t++;
+        }
+        else if(it_s->vertex<it_t->vertex)it_s++;
+        else it_t++;
+    }
+    paths.push_back({s_pre,mid});paths.push_back({mid,t_pre});
+    //recursive
+    vector<pair<int, int>> paths_s,paths_t;
+    paths_s=HB_extract_path_v1(L,source,s_pre,hop_cst);
+    paths_t=HB_extract_path_v1(L,t_pre,terminal,hop_cst);
+    //connect paths
+    paths.insert(paths.end(),paths_t.begin(),paths_t.end());
+    paths_s.insert(paths_s.end(),paths.begin(),paths.end());
+    paths.swap(paths_s);
     return paths;
 }
