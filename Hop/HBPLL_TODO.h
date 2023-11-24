@@ -53,7 +53,7 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k) {
     Q_handle[{v_k, 0}] = {Q.push({node}), node.priority_value};
     two_hop_label_v1 xx;
     long long int new_label_num = 0;
-    while (Q.size() > 0) {
+    while (Q.size() > 0) {//start
         HBPLL_v1_node temp=Q.top();Q.pop();
         if(v_k<=temp.vertex){
             double min_distance=std::numeric_limits<double>::max();
@@ -67,27 +67,38 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k) {
             if(min_distance>temp.priority_value){
                 xx.distance=temp.priority_value;
                 xx.hop=temp.hop;
+                xx.parent_vertex=temp.parent_vertex;
                 xx.vertex=temp.vertex;
                 L_temp_599[temp.vertex].push_back(xx);
                 dist_hop_599[used_id][temp.vertex]={xx.distance,xx.hop};
                 dist_hop_changes.push(temp.vertex);
             }
+            //ideal_graph_599
             if(temp.hop+1<=upper_k){
-
+                auto neighbors=ideal_graph_599[xx.vertex];               
+                for(auto it:neighbors){
+                    double dv=xx.distance+it.second;
+                    double Q_vh=std::numeric_limits<double>::max();
+                    if(Q_handle.find({it.first,temp.hop+1})!=Q_handle.end()){
+                        cout<<1;
+                        double Q_vh=min(Q_vh,Q_handle[{it.first,temp.hop+1}].second);
+                        if(dv<Q_vh){
+                            auto ptr=Q_handle[{it.first,temp.hop+1}].first;
+                            auto new_node=*ptr;
+                            new_node.priority_value=dv;
+                            Q.update(ptr,
+                            new_node);   
+                        }
+                    }
+                    else if(Q_handle.find({it.first,temp.hop+1})==Q_handle.end()){
+                        HBPLL_v1_node new_node={it.first,xx.vertex,temp.hop+1,dv};//?前驱是谁
+                        Q_handle[{it.first,temp.hop+1}]={Q.push(new_node),dv};
+                    }
+                }
                 
             }
         }   
-        /**
-         * TODO: Code needs to be completed
-         *
-         *
-         *
-         */
-
-         exit(1);
     }
-
-
     while (Temp_L_vk_changes.size() > 0) {
         vector < pair < double, int >> ().swap(Temp_L_vk_599[used_id][Temp_L_vk_changes.front()]);
         Temp_L_vk_changes.pop();
