@@ -201,35 +201,37 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
         return paths;
     }
     //------------------Begin TODO------------------
-    double distance = std::numeric_limits<double>::max();
+    // 递归结束
+    if (hop_cst == 1)
+    {
+        for (auto it_s = L[source].begin(); it_s != L[source].end(); it_s++)
+        {
+            if (it_s->vertex == terminal)
+            {
+                paths[0] = make_pair(source, terminal);
+            }
+        }
+        return paths;
+    }
     int mid = 0, s_pre = 0, t_pre = 0;
     int s_hop_cst = 0, t_hop_cst = 0;
+    double distance = std::numeric_limits<double>::max();
+    // 递归部分
     for (auto it_s = L[source].begin(); it_s != L[source].end(); it_s++)
     {
         for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
         {
             if (it_s->vertex == it_t->vertex and it_s->hop + it_t->hop <= hop_cst and distance > it_s->distance + it_t->distance)
             {
-                distance = it_s->distance + it_t->distance;
-                distance = it_s->distance + it_t->distance;
+                paths.clear();
                 mid = it_s->vertex;
-                s_pre = it_s->parent_vertex;
-                t_pre = it_t->parent_vertex;
-                s_hop_cst = it_s->hop;
-                t_hop_cst = it_t->hop;
+                vector<pair<int, int>> pair_s = HB_extract_path_v1(L, source, mid, it_s->hop);
+                vector<pair<int, int>> pair_t = HB_extract_path_v1(L, mid, terminal, it_t->hop);
+                paths.insert(paths.end(), pair_s.begin(), pair_s.end());
+                paths.insert(paths.end(), pair_t.begin(), pair_t.end());
             }
         }
     }
-    paths.push_back({s_pre, mid});
-    paths.push_back({mid, t_pre});
-    // recursive
-    vector<pair<int, int>> paths_s, paths_t;
-    paths_s = HB_extract_path_v1(L, source, s_pre, s_hop_cst - 1);
-    paths_t = HB_extract_path_v1(L, t_pre, terminal, t_hop_cst - 1);
-    // connect paths
-    paths.insert(paths.end(), paths_t.begin(), paths_t.end());
-    paths_s.insert(paths_s.end(), paths.begin(), paths.end());
-    paths.swap(paths_s);
     //-------------------END TODO-------------------
     return paths;
 }
