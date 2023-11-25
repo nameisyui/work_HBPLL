@@ -114,7 +114,7 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
                         }
                         else
                         {
-                            HBPLL_v1_node new_node = {it.first, xx.vertex, temp.hop + 1, dv};
+                            HBPLL_v1_node new_node = {it.first, temp.vertex, temp.hop + 1, dv};
                             Q_handle[{it.first, temp.hop + 1}] = {Q.push(new_node), dv};
                         }
                     }
