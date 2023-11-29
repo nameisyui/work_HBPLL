@@ -65,17 +65,11 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
         if (v_k <= temp.vertex)
         {
             double min_distance = std::numeric_limits<double>::max();
-            for (auto it_1 : L_temp_599)
-            {
-                for (auto it_2 : it_1)
-                {
-                    for (auto it_3 : it_1)
-                    {
-                        if (it_2.parent_vertex == v_k and it_3.parent_vertex == temp.vertex and it_2.hop + it_3.hop <= temp.hop)
-                        {
-                            min_distance = min(min_distance, it_2.distance + it_3.distance);
-                        }
-                    }
+            for(auto it:L_temp_599[temp.vertex] ){
+                double temp_distance=it.distance+Temp_L_vk_599[used_id][it.vertex][0].first;
+                double temp_hop=it.hop+Temp_L_vk_599[used_id][it.vertex][0].second;
+                if(temp_hop<=temp.hop&&min_distance>temp_distance){
+                    min_distance=temp_distance;
                 }
             }
             if (min_distance > temp.priority_value)
@@ -92,8 +86,8 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
                 }
                 dist_hop_599[used_id][temp.vertex] = {xx.distance, xx.hop};
                 dist_hop_changes.push(temp.vertex);
-
-                if (temp.hop + 1 <= upper_k)
+                int new_hop=temp.hop+1;
+                if (new_hop <= upper_k)
                 {
                     auto neighbors = ideal_graph_599[temp.vertex];
 
@@ -109,6 +103,7 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
                                 auto ptr = Q_handle[{it.first, temp.hop + 1}].first;
                                 auto new_node = *ptr;
                                 new_node.priority_value = dv;
+                                Q_handle[{it.first, temp.hop + 1}].second=dv;
                                 Q.update(ptr, new_node);
                             }
                         }
@@ -208,7 +203,7 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
         {
             if (it_s->vertex == terminal)
             {
-                paths[0] = make_pair(source, terminal);
+                paths.push_back({source, terminal});
             }
         }
         return paths;
