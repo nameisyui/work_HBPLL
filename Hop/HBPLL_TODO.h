@@ -57,6 +57,7 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
     Q_handle[{v_k, 0}] = {Q.push({node}), node.priority_value};
     two_hop_label_v1 xx;
     long long int new_label_num = 0;
+    int t = 0; // debugger
     while (Q.size() > 0)
     {
         //------------------Begin TODO------------------
@@ -67,8 +68,13 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
             double min_distance = std::numeric_limits<double>::max();
             for (auto it : L_temp_599[temp.vertex])
             {
-                double temp_distance = it.distance + Temp_L_vk_599[used_id][it.vertex][0].first;
-                double temp_hop = it.hop + Temp_L_vk_599[used_id][it.vertex][0].second;
+                double temp_distance = std::numeric_limits<double>::max();
+                double temp_hop = std::numeric_limits<double>::max();
+                if (Temp_L_vk_599[used_id][it.vertex].size() != 0)
+                {
+                    temp_distance = it.distance + Temp_L_vk_599[used_id][it.vertex][0].first;
+                    temp_hop = it.hop + Temp_L_vk_599[used_id][it.vertex][0].second;
+                }
                 if (temp_hop <= temp.hop && min_distance > temp_distance)
                 {
                     min_distance = temp_distance;
@@ -183,7 +189,7 @@ double HB_extract_distance_v1(vector<vector<two_hop_label_v1>> &L, int source, i
 }
 
 /**
- * 最短距离查询函数
+ * 最短路径查询函数
  * @param L         索引集
  * @param source    查询起点
  * @param terminal  查询终点
@@ -198,6 +204,7 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
         return paths;
     }
     //------------------Begin TODO------------------
+    // printf("CheckPoint1: <s,t>=<%2d,%2d>, hop_cst=%d\n", source, terminal, hop_cst);
     double distance = std::numeric_limits<double>::max();
     if (hop_cst == 1)
     {
@@ -207,6 +214,7 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
             {
                 paths.clear();
                 paths.push_back({source, terminal});
+                distance = it_s->distance;
             }
         }
         for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
@@ -215,6 +223,7 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
             {
                 paths.clear();
                 paths.push_back({source, terminal});
+                distance = it_t->distance;
             }
         }
         return paths;
@@ -223,24 +232,46 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
     else
         for (auto it_s = L[source].begin(); it_s != L[source].end(); it_s++)
         {
-            for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
+            // 防止陷入无限循环
+            if (it_s->vertex == terminal)
             {
-                if (it_s->vertex == it_t->vertex and it_s->hop + it_t->hop <= hop_cst and distance > it_s->distance + it_t->distance)
-                {
-                    paths.clear();
-                    int mid = it_s->vertex;
-                    if (source != mid)
+                for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
+                    if (it_s->vertex != terminal and it_s->vertex == it_t->vertex and it_s->hop + it_t->hop <= hop_cst and distance > it_s->distance + it_t->distance)
                     {
+                        int mid = it_s->vertex;
+                        // printf("CheckPoint2: s-->m-->t=%2d--%d-->%2d--%d-->%2d>\n", source, it_s->hop, mid, it_t->hop, terminal);
+                        paths.clear();
                         vector<pair<int, int>> pair_s = HB_extract_path_v1(L, source, mid, it_s->hop);
                         paths.insert(paths.end(), pair_s.begin(), pair_s.end());
-                    }
-                    if (terminal != mid)
-                    {
                         vector<pair<int, int>> pair_t = HB_extract_path_v1(L, terminal, mid, it_t->hop);
                         paths.insert(paths.end(), pair_t.begin(), pair_t.end());
                     }
-                }
             }
+            // 递归部分
+            else
+                for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
+                {
+                    if (it_s->vertex == it_t->vertex and it_s->hop + it_t->hop <= hop_cst and distance > it_s->distance + it_t->distance)
+                    {
+                        int mid = it_s->vertex;
+                        // printf("CheckPoint3: s-->m-->t=%2d--%d-->%2d--%d-->%2d>\n", source, it_s->hop, mid, it_t->hop, terminal);
+                        paths.clear();
+                        if (source != mid)
+                        {
+                            vector<pair<int, int>> pair_s = HB_extract_path_v1(L, source, mid, it_s->hop);
+                            paths.insert(paths.end(), pair_s.begin(), pair_s.end());
+                        }
+                        if (terminal != mid)
+                        {
+                            vector<pair<int, int>> pair_t = HB_extract_path_v1(L, terminal, mid, it_t->hop);
+                            paths.insert(paths.end(), pair_t.begin(), pair_t.end());
+                        }
+                    }
+                }
+            // printf("CheckPoint4: ");
+            // for (auto it = paths.begin(); it != paths.end(); it++)
+            //     printf("%d-->%d, ", it->first, it->second);
+            // printf("\n");
         }
     //-------------------END TODO-------------------
     return paths;
