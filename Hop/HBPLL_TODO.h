@@ -65,11 +65,13 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
         if (v_k <= temp.vertex)
         {
             double min_distance = std::numeric_limits<double>::max();
-            for(auto it:L_temp_599[temp.vertex] ){
-                double temp_distance=it.distance+Temp_L_vk_599[used_id][it.vertex][0].first;
-                double temp_hop=it.hop+Temp_L_vk_599[used_id][it.vertex][0].second;
-                if(temp_hop<=temp.hop&&min_distance>temp_distance){
-                    min_distance=temp_distance;
+            for (auto it : L_temp_599[temp.vertex])
+            {
+                double temp_distance = it.distance + Temp_L_vk_599[used_id][it.vertex][0].first;
+                double temp_hop = it.hop + Temp_L_vk_599[used_id][it.vertex][0].second;
+                if (temp_hop <= temp.hop && min_distance > temp_distance)
+                {
+                    min_distance = temp_distance;
                 }
             }
             if (min_distance > temp.priority_value)
@@ -86,7 +88,7 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
                 }
                 dist_hop_599[used_id][temp.vertex] = {xx.distance, xx.hop};
                 dist_hop_changes.push(temp.vertex);
-                int new_hop=temp.hop+1;
+                int new_hop = temp.hop + 1;
                 if (new_hop <= upper_k)
                 {
                     auto neighbors = ideal_graph_599[temp.vertex];
@@ -103,7 +105,7 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
                                 auto ptr = Q_handle[{it.first, temp.hop + 1}].first;
                                 auto new_node = *ptr;
                                 new_node.priority_value = dv;
-                                Q_handle[{it.first, temp.hop + 1}].second=dv;
+                                Q_handle[{it.first, temp.hop + 1}].second = dv;
                                 Q.update(ptr, new_node);
                             }
                         }
@@ -196,37 +198,50 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
         return paths;
     }
     //------------------Begin TODO------------------
-    // 递归结束
+    double distance = std::numeric_limits<double>::max();
     if (hop_cst == 1)
     {
         for (auto it_s = L[source].begin(); it_s != L[source].end(); it_s++)
         {
-            if (it_s->vertex == terminal)
+            if (it_s->vertex == terminal and distance > it_s->distance)
             {
+                paths.clear();
+                paths.push_back({source, terminal});
+            }
+        }
+        for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
+        {
+            if (it_t->vertex == source and distance > it_t->distance)
+            {
+                paths.clear();
                 paths.push_back({source, terminal});
             }
         }
         return paths;
     }
-    int mid = 0, s_pre = 0, t_pre = 0;
-    int s_hop_cst = 0, t_hop_cst = 0;
-    double distance = std::numeric_limits<double>::max();
-    // 递归部分
-    for (auto it_s = L[source].begin(); it_s != L[source].end(); it_s++)
-    {
-        for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
+    // 递归
+    else
+        for (auto it_s = L[source].begin(); it_s != L[source].end(); it_s++)
         {
-            if (it_s->vertex == it_t->vertex and it_s->hop + it_t->hop <= hop_cst and distance > it_s->distance + it_t->distance)
+            for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
             {
-                paths.clear();
-                mid = it_s->vertex;
-                vector<pair<int, int>> pair_s = HB_extract_path_v1(L, source, mid, it_s->hop);
-                vector<pair<int, int>> pair_t = HB_extract_path_v1(L, mid, terminal, it_t->hop);
-                paths.insert(paths.end(), pair_s.begin(), pair_s.end());
-                paths.insert(paths.end(), pair_t.begin(), pair_t.end());
+                if (it_s->vertex == it_t->vertex and it_s->hop + it_t->hop <= hop_cst and distance > it_s->distance + it_t->distance)
+                {
+                    paths.clear();
+                    int mid = it_s->vertex;
+                    if (source != mid)
+                    {
+                        vector<pair<int, int>> pair_s = HB_extract_path_v1(L, source, mid, it_s->hop);
+                        paths.insert(paths.end(), pair_s.begin(), pair_s.end());
+                    }
+                    if (terminal != mid)
+                    {
+                        vector<pair<int, int>> pair_t = HB_extract_path_v1(L, terminal, mid, it_t->hop);
+                        paths.insert(paths.end(), pair_t.begin(), pair_t.end());
+                    }
+                }
             }
         }
-    }
     //-------------------END TODO-------------------
     return paths;
 }
