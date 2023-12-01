@@ -174,10 +174,16 @@ double HB_extract_distance_v1(vector<vector<two_hop_label_v1>> &L, int source, i
 
     double distance = std::numeric_limits<double>::max();
     //------------------Begin TODO------------------
+    auto it_s = L[source].begin();
+    auto it_t = L[terminal].begin();
     for (auto it_s = L[source].begin(); it_s != L[source].end(); it_s++)
     {
         for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
         {
+            if (it_s->vertex < it_t->vertex)
+            {
+                break;
+            }
             if (it_s->vertex == it_t->vertex and it_s->hop + it_t->hop <= hop_cst)
             {
                 distance = min(distance, it_s->distance + it_t->distance);
@@ -204,75 +210,56 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
         return paths;
     }
     //------------------Begin TODO------------------
-    // printf("CheckPoint1: <s,t>=<%2d,%2d>, hop_cst=%d\n", source, terminal, hop_cst);
-    double distance = std::numeric_limits<double>::max();
-    if (hop_cst == 1)
+    double distance = numeric_limits<double>::max();
+    int pre_s, pre_t; // 两个label的前驱结点
+    auto it_s = L[source].begin();
+    auto it_t = L[terminal].begin();
+    for (auto it_s = L[source].begin(); it_s != L[source].end(); it_s++)
     {
-        for (auto it_s = L[source].begin(); it_s != L[source].end(); it_s++)
-        {
-            if (it_s->vertex == terminal and distance > it_s->distance)
-            {
-                paths.clear();
-                paths.push_back({source, terminal});
-                distance = it_s->distance;
-            }
-        }
         for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
         {
-            if (it_t->vertex == source and distance > it_t->distance)
+            if (it_s->vertex < it_t->vertex)
             {
-                paths.clear();
-                paths.push_back({source, terminal});
-                distance = it_t->distance;
+                break;
             }
-        }
-        return paths;
-    }
-    // 递归
-    else
-        for (auto it_s = L[source].begin(); it_s != L[source].end(); it_s++)
-        {
-            // 防止陷入无限循环
-            if (it_s->vertex == terminal)
+            if (it_s->vertex == it_t->vertex and it_s->hop + it_t->hop <= hop_cst)
             {
-                for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
-                    if (it_s->vertex != terminal and it_s->vertex == it_t->vertex and it_s->hop + it_t->hop <= hop_cst and distance > it_s->distance + it_t->distance)
-                    {
-                        int mid = it_s->vertex;
-                        // printf("CheckPoint2: s-->m-->t=%2d--%d-->%2d--%d-->%2d>\n", source, it_s->hop, mid, it_t->hop, terminal);
-                        paths.clear();
-                        vector<pair<int, int>> pair_s = HB_extract_path_v1(L, source, mid, it_s->hop);
-                        paths.insert(paths.end(), pair_s.begin(), pair_s.end());
-                        vector<pair<int, int>> pair_t = HB_extract_path_v1(L, terminal, mid, it_t->hop);
-                        paths.insert(paths.end(), pair_t.begin(), pair_t.end());
-                    }
-            }
-            // 递归部分
-            else
-                for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
+                double dis = it_s->distance + it_t->distance;
+                if (distance > dis)
                 {
-                    if (it_s->vertex == it_t->vertex and it_s->hop + it_t->hop <= hop_cst and distance > it_s->distance + it_t->distance)
-                    {
-                        int mid = it_s->vertex;
-                        // printf("CheckPoint3: s-->m-->t=%2d--%d-->%2d--%d-->%2d>\n", source, it_s->hop, mid, it_t->hop, terminal);
-                        paths.clear();
-                        if (source != mid)
-                        {
-                            vector<pair<int, int>> pair_s = HB_extract_path_v1(L, source, mid, it_s->hop);
-                            paths.insert(paths.end(), pair_s.begin(), pair_s.end());
-                        }
-                        if (terminal != mid)
-                        {
-                            vector<pair<int, int>> pair_t = HB_extract_path_v1(L, terminal, mid, it_t->hop);
-                            paths.insert(paths.end(), pair_t.begin(), pair_t.end());
-                        }
-                    }
+                    distance = dis;
+                    pre_s = it_s->parent_vertex;
+                    pre_t = it_t->parent_vertex;
                 }
-            // printf("CheckPoint4: ");
-            // for (auto it = paths.begin(); it != paths.end(); it++)
-            //     printf("%d-->%d, ", it->first, it->second);
-            // printf("\n");
+            }
         }
+    }
+    if (distance < numeric_limits<double>::max() - 1)
+    {
+        if (source != pre_s)
+        {
+            paths.push_back({source, pre_s});
+            source = pre_s;
+            hop_cst--;
+        }
+        if (terminal != pre_t)
+        {
+            paths.push_back({terminal, pre_t});
+            terminal = pre_t;
+            hop_cst--;
+        }
+    }
+
+    // 递归
+    vector<pair<int, int>> new_edges = HB_extract_path_v1(L, source, terminal, hop_cst);
+
+    if (new_edges.size() > 0)
+    {
+        for (int i = new_edges.size() - 1; i >= 0; i--)
+        {
+            paths.push_back(new_edges[i]);
+        }
+    }
     //-------------------END TODO-------------------
     return paths;
 }
