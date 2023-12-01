@@ -5,6 +5,7 @@
 using namespace std;
 
 void HB_v1_sort_labels_thread(vector<vector<two_hop_label_v1>> *output_L, int v_k) {
+    cout<<1;
     sort(L_temp_599[v_k].begin(), L_temp_599[v_k].end(), compare_two_hop_label_small_to_large);
     (*output_L)[v_k] = L_temp_599[v_k];
     vector<two_hop_label_v1>().swap(L_temp_599[v_k]);  // clear new labels for RAM efficiency
@@ -97,7 +98,7 @@ void HBPLL_v1(graph_v_of_v_idealID &input_graph, int num_of_threads, two_hop_cas
     begin = std::chrono::high_resolution_clock::now();
 
     case_info.L = HB_v1_sort_labels(N, N, num_of_threads);
-
+    cout<<1;
     end = std::chrono::high_resolution_clock::now();
     case_info.time_sort_labels = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
 

@@ -158,44 +158,49 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
  */
 double HB_extract_distance_v1(vector<vector<two_hop_label_v1>> &L, int source, int terminal, int hop_cst)
 {
-    /*return std::numeric_limits<double>::max() is not connected*/
-    if (hop_cst < 0)
-    {
-        return std::numeric_limits<double>::max();
-    }
-    if (source == terminal)
-    {
-        return 0;
-    }
-    else if (hop_cst == 0)
-    {
-        return std::numeric_limits<double>::max();
-    }
+    /*return std::numeric_limits<double>::max() is not connected*/
+    if (hop_cst < 0)
+    {
+        return std::numeric_limits<double>::max();
+    }
+    if (source == terminal)
+    {
+        return 0;
+    }
+    else if (hop_cst == 0)
+    {
+        return std::numeric_limits<double>::max();
+    }
 
-    double distance = std::numeric_limits<double>::max();
-    //------------------Begin TODO------------------
-    auto it_s=L[source].begin();
-    auto it_t=L[terminal].begin();
-    auto it_s_end=L[source].end(),it_t_end=L[terminal].end();
-    while(it_s!=it_s_end&&it_t!=it_t_end){
-        if(it_s->vertex==it_t->vertex){
-            auto vertex=it_s->vertex;
-            auto temp_t=it_t;//应该回溯到的位置
-            while(it_s!=it_s_end&&it_s->vertex==vertex){
-                it_t=temp_t;//回溯
-                while(it_t!=it_t_end&&it_t->vertex==vertex){
-                    if(it_s->hop+it_t->hop<=hop_cst){
-                        distance=min(distance,it_s->distance+it_t->distance);
-                    }
-                    it_t++;
-                }
-                it_s++;
-            }
-        }
-        else if(it_s->vertex<it_t->vertex)it_s++;
-        else it_t++;
-
-    }
+    double distance = std::numeric_limits<double>::max();
+    //------------------Begin TODO------------------
+    auto it_s=L_temp_599[source].begin(),it_t=L_temp_599[terminal].begin();
+    auto it_s_end=L_temp_599[source].end(),it_t_end=L_temp_599[terminal].end();
+    while(it_s!=it_s_end&&it_t!=it_t_end){
+        if(it_s->vertex==it_t->vertex){
+            auto vertex=it_s->vertex;
+            auto temp_t=it_t;//应该回溯到的位置
+            while(it_s!=it_s_end&&it_s->vertex==vertex){
+                it_t=temp_t;//回溯
+                while(it_t!=it_t_end&&it_t->vertex==vertex){
+                    if(it_s->hop+it_t->hop<=hop_cst){
+                        distance=min(distance,it_s->distance+it_t->distance);
+                    }
+                    it_t++;
+                }
+                it_s++;
+            }
+        }
+        else if(it_s->vertex<it_t->vertex){
+            it_s++;
+        }
+        else{
+            it_t++;
+        }
+    }
+    //-------------------END TODO-------------------
+    return distance;
+}
 
 /**
  * 最短路径查询函数
