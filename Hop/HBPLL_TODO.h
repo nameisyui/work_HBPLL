@@ -158,44 +158,49 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
  */
 double HB_extract_distance_v1(vector<vector<two_hop_label_v1>> &L, int source, int terminal, int hop_cst)
 {
-    /*return std::numeric_limits<double>::max() is not connected*/
-    if (hop_cst < 0)
-    {
-        return std::numeric_limits<double>::max();
-    }
-    if (source == terminal)
-    {
-        return 0;
-    }
-    else if (hop_cst == 0)
-    {
-        return std::numeric_limits<double>::max();
-    }
+    /*return std::numeric_limits<double>::max() is not connected*/
+    if (hop_cst < 0)
+    {
+        return std::numeric_limits<double>::max();
+    }
+    if (source == terminal)
+    {
+        return 0;
+    }
+    else if (hop_cst == 0)
+    {
+        return std::numeric_limits<double>::max();
+    }
 
-    double distance = std::numeric_limits<double>::max();
-    //------------------Begin TODO------------------
-    auto it_s=L[source].begin();
-    auto it_t=L[terminal].begin();
-    auto it_s_end=L[source].end(),it_t_end=L[terminal].end();
-    while(it_s!=it_s_end&&it_t!=it_t_end){
-        if(it_s->vertex==it_t->vertex){
-            auto vertex=it_s->vertex;
-            auto temp_t=it_t;//应该回溯到的位置
-            while(it_s!=it_s_end&&it_s->vertex==vertex){
-                it_t=temp_t;//回溯
-                while(it_t!=it_t_end&&it_t->vertex==vertex){
-                    if(it_s->hop+it_t->hop<=hop_cst){
-                        distance=min(distance,it_s->distance+it_t->distance);
-                    }
-                    it_t++;
-                }
-                it_s++;
-            }
-        }
-        else if(it_s->vertex<it_t->vertex)it_s++;
-        else it_t++;
-
-    }
+    double distance = std::numeric_limits<double>::max();
+    //------------------Begin TODO------------------
+    auto it_s=L[source].begin(),it_t=L[terminal].begin();
+    auto it_s_end=L[source].end(),it_t_end=L[terminal].end();
+    while(it_s!=it_s_end&&it_t!=it_t_end){
+        if(it_s->vertex==it_t->vertex){
+            auto vertex=it_s->vertex;
+            auto temp_t=it_t;//应该回溯到的位置
+            while(it_s!=it_s_end&&it_s->vertex==vertex){
+                it_t=temp_t;//回溯
+                while(it_t!=it_t_end&&it_t->vertex==vertex){
+                    if(it_s->hop+it_t->hop<=hop_cst){
+                        distance=min(distance,it_s->distance+it_t->distance);
+                    }
+                    it_t++;
+                }
+                it_s++;
+            }
+        }
+        else if(it_s->vertex<it_t->vertex){
+            it_s++;
+        }
+        else{
+            it_t++;
+        }
+    }
+    //-------------------END TODO-------------------
+    return distance;
+}
 
 /**
  * 最短路径查询函数
@@ -207,6 +212,7 @@ double HB_extract_distance_v1(vector<vector<two_hop_label_v1>> &L, int source, i
  */
 vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, int source, int terminal, int hop_cst)
 {
+    //cout<<source<<" "<<terminal<<" "<<hop_cst<<endl;
     vector<pair<int, int>> paths;
     if (source == terminal)
     {
@@ -217,26 +223,40 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
     int pre_s, pre_t; // 两个label的前驱结点
     auto it_s = L[source].begin();
     auto it_t = L[terminal].begin();
-    for (auto it_s = L[source].begin(); it_s != L[source].end(); it_s++)
-    {
-        for (auto it_t = L[terminal].begin(); it_t != L[terminal].end(); it_t++)
-        {
-            if (it_s->vertex < it_t->vertex)
-            {
-                break;
-            }
-            if (it_s->vertex == it_t->vertex and it_s->hop + it_t->hop <= hop_cst)
-            {
-                double dis = it_s->distance + it_t->distance;
-                if (distance > dis)
-                {
-                    distance = dis;
-                    pre_s = it_s->parent_vertex;
-                    pre_t = it_t->parent_vertex;
+    auto it_s_end=L[source].end(),it_t_end=L[terminal].end();
+    while(it_s!=it_s_end&&it_t!=it_t_end){
+        //一旦发现相等，s先不动，t先向后遍历，直到it_t->vertex改变，
+        //此时让t回溯到刚发现相等时的位置，让s向后一位，然后继续向后遍历t，以此类推,
+        //直到遍历完所有的it_s->vertex==it_t->vertex
+        if(it_s->vertex==it_t->vertex){
+            auto vertex=it_s->vertex;
+            auto temp_t=it_t;//t应该回溯到的位置
+            while(it_s!=it_s_end&&it_s->vertex==vertex){
+                it_t=temp_t;//回溯t
+                while(it_t!=it_t_end&&it_t->vertex==vertex){
+                    if(it_s->hop+it_t->hop<=hop_cst){
+                        double dis=it_s->distance + it_t->distance;
+                        if (distance > dis){
+                            distance = dis;
+                            pre_s = it_s->parent_vertex;
+                            pre_t = it_t->parent_vertex;
+                        }
+                    }
+                    it_t++;
                 }
+                //t遍历完成，轮到s++
+                it_s++;
             }
         }
+        else if(it_s->vertex<it_t->vertex){
+            it_s++;
+        }
+        else{
+            it_t++;
+        }
     }
+    pair<int,int> end_path;
+    bool have_end=false;
     if (distance < numeric_limits<double>::max() - 1)
     {
         if (source != pre_s)
@@ -247,21 +267,25 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
         }
         if (terminal != pre_t)
         {
-            paths.push_back({terminal, pre_t});
+            have_end=true;
+            end_path={pre_t,terminal};
+            //paths.push_back({terminal, pre_t});
             terminal = pre_t;
             hop_cst--;
         }
     }
-
-    // 递归
+    else {//两点之间无路径
+        return paths;
+    }
+    // 递归寻找新路径
     vector<pair<int, int>> new_edges = HB_extract_path_v1(L, source, terminal, hop_cst);
 
     if (new_edges.size() > 0)
     {
-        for (int i = new_edges.size() - 1; i >= 0; i--)
-        {
-            paths.push_back(new_edges[i]);
-        }
+        paths.insert(paths.end(),new_edges.begin(),new_edges.end());
+    }
+    if(have_end){
+        paths.push_back(end_path);
     }
     //-------------------END TODO-------------------
     return paths;
