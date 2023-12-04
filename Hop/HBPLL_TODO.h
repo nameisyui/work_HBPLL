@@ -57,7 +57,7 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
     Q_handle[{v_k, 0}] = {Q.push({node}), node.priority_value};
     two_hop_label_v1 xx;
     long long int new_label_num = 0;
-    int t = 0; // debugger
+
     while (Q.size() > 0)
     {
         //------------------Begin TODO------------------
@@ -65,20 +65,24 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
         Q.pop();
         if (v_k <= temp.vertex)
         {
-            double min_distance = std::numeric_limits<double>::max();
+            mtx_599[temp.vertex].lock();
+            double min_distance = numeric_limits<double>::max();
             for (auto it : L_temp_599[temp.vertex])
             {
-                double temp_distance = std::numeric_limits<double>::max();
-                double temp_hop = std::numeric_limits<double>::max();
+                double temp_distance = numeric_limits<double>::max();
+                double temp_hop = numeric_limits<double>::max();
                 if (Temp_L_vk_599[used_id][it.vertex].size() != 0)
                 {
-                    for(auto it_t:Temp_L_vk_599[used_id][it.vertex]){
-                        if(it_t.second+it.hop<=temp.hop){
-                            min_distance=min(min_distance,it_t.first+it.distance);
+                    for (auto it_t : Temp_L_vk_599[used_id][it.vertex])
+                    {
+                        if (it_t.second + it.hop <= temp.hop)
+                        {
+                            min_distance = min(min_distance, it_t.first + it.distance);
                         }
                     }
                 }
             }
+            mtx_599[temp.vertex].unlock();
             if (min_distance > temp.priority_value)
             {
                 xx.distance = temp.priority_value;
@@ -95,23 +99,38 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
                     for (auto it : neighbors)
                     {
                         double dv = xx.distance + it.second;
-                        double Q_vh = std::numeric_limits<double>::max();
-                        if (Q_handle.find({it.first, temp.hop + 1}) != Q_handle.end())
-                        {
-                            double Q_vh = min(Q_vh, Q_handle[{it.first, temp.hop + 1}].second);
-                            if (dv < Q_vh)
-                            {
-                                auto ptr = Q_handle[{it.first, temp.hop + 1}].first;
-                                auto new_node = *ptr;
-                                new_node.priority_value = dv;
-                                Q_handle[{it.first, temp.hop + 1}].second = dv;
-                                Q.update(ptr, new_node);
-                            }
-                        }
-                        else
+                        if (dist_hop_599[used_id][it.first].first == numeric_limits<double>::max())
                         {
                             HBPLL_v1_node new_node = {it.first, temp.vertex, temp.hop + 1, dv};
-                            Q_handle[{it.first, temp.hop + 1}] = {Q.push(new_node), dv};
+                            Q_handle[{it.first, node.hop}] = {Q.push(new_node), dv};
+                            dist_hop_599[used_id][it.first] = pair<double, int>(dv, new_node.hop);
+                            dist_hop_changes.push(it.first);
+                        }
+                        else if (dv < dist_hop_599[used_id][it.first].first or new_hop < dist_hop_599[used_id][it.first].second)
+                        {
+
+                            if (Q_handle.find({it.first, temp.hop + 1}) != Q_handle.end())
+                            {
+                                if (dv < Q_handle[{it.first, temp.hop + 1}].second)
+                                {
+                                    auto ptr = Q_handle[{it.first, temp.hop + 1}].first;
+                                    auto new_node = *ptr;
+                                    new_node.priority_value = dv;
+                                    Q_handle[{it.first, temp.hop + 1}].second = dv;
+                                    Q.update(ptr, new_node);
+                                }
+                            }
+                            else
+                            {
+                                HBPLL_v1_node new_node = {it.first, temp.vertex, temp.hop + 1, dv};
+                                Q_handle[{it.first, new_node.hop}] = {Q.push(new_node), dv};
+                            }
+                            // 其中
+                            if (dv < dist_hop_599[used_id][it.first].first)
+                            {
+                                dist_hop_599[used_id][it.first] = pair<double, int>(dv, temp.hop + 1);
+                                dist_hop_changes.push(it.first);
+                            }
                         }
                     }
                 }
@@ -167,27 +186,34 @@ double HB_extract_distance_v1(vector<vector<two_hop_label_v1>> &L, int source, i
 
     double distance = std::numeric_limits<double>::max();
     //------------------Begin TODO------------------
-    auto it_s=L[source].begin(),it_t=L[terminal].begin();
-    auto it_s_end=L[source].end(),it_t_end=L[terminal].end();
-    while(it_s!=it_s_end&&it_t!=it_t_end){
-        if(it_s->vertex==it_t->vertex){
-            auto vertex=it_s->vertex;
-            auto temp_t=it_t;//应该回溯到的位置
-            while(it_s!=it_s_end&&it_s->vertex==vertex){
-                it_t=temp_t;//回溯
-                while(it_t!=it_t_end&&it_t->vertex==vertex){
-                    if(it_s->hop+it_t->hop<=hop_cst){
-                        distance=min(distance,it_s->distance+it_t->distance);
+    auto it_s = L[source].begin(), it_t = L[terminal].begin();
+    auto it_s_end = L[source].end(), it_t_end = L[terminal].end();
+    while (it_s != it_s_end && it_t != it_t_end)
+    {
+        if (it_s->vertex == it_t->vertex)
+        {
+            auto vertex = it_s->vertex;
+            auto temp_t = it_t; // 应该回溯到的位置
+            while (it_s != it_s_end && it_s->vertex == vertex)
+            {
+                it_t = temp_t; // 回溯
+                while (it_t != it_t_end && it_t->vertex == vertex)
+                {
+                    if (it_s->hop + it_t->hop <= hop_cst)
+                    {
+                        distance = min(distance, it_s->distance + it_t->distance);
                     }
                     it_t++;
                 }
                 it_s++;
             }
         }
-        else if(it_s->vertex<it_t->vertex){
+        else if (it_s->vertex < it_t->vertex)
+        {
             it_s++;
         }
-        else{
+        else
+        {
             it_t++;
         }
     }
@@ -205,7 +231,7 @@ double HB_extract_distance_v1(vector<vector<two_hop_label_v1>> &L, int source, i
  */
 vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, int source, int terminal, int hop_cst)
 {
-    //cout<<source<<" "<<terminal<<" "<<hop_cst<<endl;
+    // cout<<source<<" "<<terminal<<" "<<hop_cst<<endl;
     vector<pair<int, int>> paths;
     if (source == terminal)
     {
@@ -216,20 +242,26 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
     int pre_s, pre_t; // 两个label的前驱结点
     auto it_s = L[source].begin();
     auto it_t = L[terminal].begin();
-    auto it_s_end=L[source].end(),it_t_end=L[terminal].end();
-    while(it_s!=it_s_end&&it_t!=it_t_end){
-        //一旦发现相等，s先不动，t先向后遍历，直到it_t->vertex改变，
-        //此时让t回溯到刚发现相等时的位置，让s向后一位，然后继续向后遍历t，以此类推,
-        //直到遍历完所有的it_s->vertex==it_t->vertex
-        if(it_s->vertex==it_t->vertex){
-            auto vertex=it_s->vertex;
-            auto temp_t=it_t;//t应该回溯到的位置
-            while(it_s!=it_s_end&&it_s->vertex==vertex){
-                it_t=temp_t;//回溯t
-                while(it_t!=it_t_end&&it_t->vertex==vertex){
-                    if(it_s->hop+it_t->hop<=hop_cst){
-                        double dis=it_s->distance + it_t->distance;
-                        if (distance > dis){
+    auto it_s_end = L[source].end(), it_t_end = L[terminal].end();
+    while (it_s != it_s_end && it_t != it_t_end)
+    {
+        // 一旦发现相等，s先不动，t先向后遍历，直到it_t->vertex改变，
+        // 此时让t回溯到刚发现相等时的位置，让s向后一位，然后继续向后遍历t，以此类推,
+        // 直到遍历完所有的it_s->vertex==it_t->vertex
+        if (it_s->vertex == it_t->vertex)
+        {
+            auto vertex = it_s->vertex;
+            auto temp_t = it_t; // t应该回溯到的位置
+            while (it_s != it_s_end && it_s->vertex == vertex)
+            {
+                it_t = temp_t; // 回溯t
+                while (it_t != it_t_end && it_t->vertex == vertex)
+                {
+                    if (it_s->hop + it_t->hop <= hop_cst)
+                    {
+                        double dis = it_s->distance + it_t->distance;
+                        if (distance > dis)
+                        {
                             distance = dis;
                             pre_s = it_s->parent_vertex;
                             pre_t = it_t->parent_vertex;
@@ -237,19 +269,21 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
                     }
                     it_t++;
                 }
-                //t遍历完成，轮到s++
+                // t遍历完成，轮到s++
                 it_s++;
             }
         }
-        else if(it_s->vertex<it_t->vertex){
+        else if (it_s->vertex < it_t->vertex)
+        {
             it_s++;
         }
-        else{
+        else
+        {
             it_t++;
         }
     }
-    pair<int,int> end_path;
-    bool have_end=false;
+    pair<int, int> end_path;
+    bool have_end = false;
     if (distance < numeric_limits<double>::max() - 1)
     {
         if (source != pre_s)
@@ -260,14 +294,15 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
         }
         if (terminal != pre_t)
         {
-            have_end=true;
-            end_path={pre_t,terminal};
-            //paths.push_back({terminal, pre_t});
+            have_end = true;
+            end_path = {pre_t, terminal};
+            // paths.push_back({terminal, pre_t});
             terminal = pre_t;
             hop_cst--;
         }
     }
-    else {//两点之间无路径
+    else
+    { // 两点之间无路径
         return paths;
     }
     // 递归寻找新路径
@@ -275,9 +310,10 @@ vector<pair<int, int>> HB_extract_path_v1(vector<vector<two_hop_label_v1>> &L, i
 
     if (new_edges.size() > 0)
     {
-        paths.insert(paths.end(),new_edges.begin(),new_edges.end());
+        paths.insert(paths.end(), new_edges.begin(), new_edges.end());
     }
-    if(have_end){
+    if (have_end)
+    {
         paths.push_back(end_path);
     }
     //-------------------END TODO-------------------
