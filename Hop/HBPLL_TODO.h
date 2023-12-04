@@ -72,12 +72,11 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
                 double temp_hop = std::numeric_limits<double>::max();
                 if (Temp_L_vk_599[used_id][it.vertex].size() != 0)
                 {
-                    temp_distance = it.distance + Temp_L_vk_599[used_id][it.vertex][0].first;
-                    temp_hop = it.hop + Temp_L_vk_599[used_id][it.vertex][0].second;
-                }
-                if (temp_hop <= temp.hop && min_distance > temp_distance)
-                {
-                    min_distance = temp_distance;
+                    for(auto it_t:Temp_L_vk_599[used_id][it.vertex]){
+                        if(it_t.second+it.hop<=temp.hop){
+                            min_distance=min(min_distance,it_t.first+it.distance);
+                        }
+                    }
                 }
             }
             if (min_distance > temp.priority_value)
@@ -86,19 +85,13 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
                 xx.hop = temp.hop;
                 xx.parent_vertex = temp.parent_vertex;
                 xx.vertex = v_k;
+                mtx_599[temp.vertex].lock();
                 L_temp_599[temp.vertex].push_back(xx);
-                if (temp.vertex == v_k)
-                {
-                    Temp_L_vk_599[used_id][v_k].push_back({xx.distance, xx.hop});
-                    Temp_L_vk_changes.push(v_k);
-                }
-                dist_hop_599[used_id][temp.vertex] = {xx.distance, xx.hop};
-                dist_hop_changes.push(temp.vertex);
+                mtx_599[temp.vertex].unlock();
                 int new_hop = temp.hop + 1;
                 if (new_hop <= upper_k)
                 {
                     auto neighbors = ideal_graph_599[temp.vertex];
-
                     for (auto it : neighbors)
                     {
                         double dv = xx.distance + it.second;
