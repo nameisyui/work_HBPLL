@@ -65,33 +65,31 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
         Q.pop();
         if (v_k <= temp.vertex)
         {
-            mtx_599[temp.vertex].lock();
             double min_distance = numeric_limits<double>::max();
+            mtx_599[temp.vertex].lock();
             for (auto it : L_temp_599[temp.vertex])
             {
-                double temp_distance = numeric_limits<double>::max();
-                double temp_hop = numeric_limits<double>::max();
-                if (Temp_L_vk_599[used_id][it.vertex].size() != 0)
+                for (auto it_t : Temp_L_vk_599[used_id][it.vertex])
                 {
-                    for (auto it_t : Temp_L_vk_599[used_id][it.vertex])
+                    if (it_t.second + it.hop <= temp.hop)
                     {
-                        if (it_t.second + it.hop <= temp.hop)
-                        {
-                            min_distance = min(min_distance, it_t.first + it.distance);
-                        }
+                        min_distance = min(min_distance, it_t.first + it.distance);
                     }
                 }
             }
             mtx_599[temp.vertex].unlock();
+
             if (min_distance > temp.priority_value)
             {
                 xx.distance = temp.priority_value;
                 xx.hop = temp.hop;
-                xx.parent_vertex = temp.parent_vertex;
                 xx.vertex = v_k;
+                xx.parent_vertex = temp.parent_vertex;
+
                 mtx_599[temp.vertex].lock();
                 L_temp_599[temp.vertex].push_back(xx);
                 mtx_599[temp.vertex].unlock();
+
                 int new_hop = temp.hop + 1;
                 if (new_hop <= upper_k)
                 {
@@ -102,19 +100,19 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
                         if (dist_hop_599[used_id][it.first].first == numeric_limits<double>::max())
                         {
                             HBPLL_v1_node new_node = {it.first, temp.vertex, temp.hop + 1, dv};
-                            Q_handle[{it.first, node.hop}] = {Q.push(new_node), dv};
+                            Q_handle[{it.first, temp.hop + 1}] = {Q.push(new_node), dv};
                             dist_hop_599[used_id][it.first] = pair<double, int>(dv, new_node.hop);
                             dist_hop_changes.push(it.first);
                         }
                         else if (dv < dist_hop_599[used_id][it.first].first or new_hop < dist_hop_599[used_id][it.first].second)
                         {
 
-                            if (Q_handle.find({it.first, temp.hop + 1}) != Q_handle.end())
+                            if (Q_handle.find({it.first, new_hop}) != Q_handle.end())
                             {
-                                if (dv < Q_handle[{it.first, temp.hop + 1}].second)
+                                if (dv < Q_handle[{it.first, new_hop}].second)
                                 {
-                                    auto ptr = Q_handle[{it.first, temp.hop + 1}].first;
-                                    auto new_node = *ptr;
+                                    auto ptr = Q_handle[{it.first, new_hop}].first;
+                                    HBPLL_v1_node new_node = {it.first, temp.vertex, temp.hop + 1, dv};
                                     new_node.priority_value = dv;
                                     Q_handle[{it.first, temp.hop + 1}].second = dv;
                                     Q.update(ptr, new_node);
