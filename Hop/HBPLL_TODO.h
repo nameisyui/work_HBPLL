@@ -97,38 +97,19 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
                     for (auto it : neighbors)
                     {
                         double dv = xx.distance + it.second;
-                        if (dist_hop_599[used_id][it.first].first == numeric_limits<double>::max())
+                        HBPLL_v1_node new_node = {it.first, temp.vertex, new_hop, dv};
+                        if (Q_handle.find({it.first, new_hop}) != Q_handle.end())
                         {
-                            HBPLL_v1_node new_node = {it.first, temp.vertex, temp.hop + 1, dv};
-                            Q_handle[{it.first, temp.hop + 1}] = {Q.push(new_node), dv};
-                            dist_hop_599[used_id][it.first] = pair<double, int>(dv, new_node.hop);
-                            dist_hop_changes.push(it.first);
+                            if (dv < Q_handle[{it.first, new_hop}].second)
+                            {
+                                auto ptr = Q_handle[{it.first, new_hop}].first;
+                                Q_handle[{it.first, new_hop}].second = dv;
+                                Q.update(ptr, new_node);
+                            }
                         }
-                        else if (dv < dist_hop_599[used_id][it.first].first or new_hop < dist_hop_599[used_id][it.first].second)
+                        else
                         {
-
-                            if (Q_handle.find({it.first, new_hop}) != Q_handle.end())
-                            {
-                                if (dv < Q_handle[{it.first, new_hop}].second)
-                                {
-                                    auto ptr = Q_handle[{it.first, new_hop}].first;
-                                    HBPLL_v1_node new_node = {it.first, temp.vertex, temp.hop + 1, dv};
-                                    new_node.priority_value = dv;
-                                    Q_handle[{it.first, temp.hop + 1}].second = dv;
-                                    Q.update(ptr, new_node);
-                                }
-                            }
-                            else
-                            {
-                                HBPLL_v1_node new_node = {it.first, temp.vertex, temp.hop + 1, dv};
-                                Q_handle[{it.first, new_node.hop}] = {Q.push(new_node), dv};
-                            }
-                            // 其中
-                            if (dv < dist_hop_599[used_id][it.first].first)
-                            {
-                                dist_hop_599[used_id][it.first] = pair<double, int>(dv, temp.hop + 1);
-                                dist_hop_changes.push(it.first);
-                            }
+                            Q_handle[{it.first, new_node.hop}] = {Q.push(new_node), dv};
                         }
                     }
                 }
