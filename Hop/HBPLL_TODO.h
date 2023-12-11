@@ -97,19 +97,32 @@ void HB_thread_function_HBDIJ_Qhandle(int v_k, int N, int upper_k)
                     for (auto it : neighbors)
                     {
                         double dv = xx.distance + it.second;
-                        HBPLL_v1_node new_node = {it.first, temp.vertex, new_hop, dv};
-                        if (Q_handle.find({it.first, new_hop}) != Q_handle.end())
+                        bool check1=dv < dist_hop_599[used_id][it.first].first;//更近的距离
+                        bool check2=new_hop < dist_hop_599[used_id][it.first].second;//更远但有更小的hop
+                        if (check1 or check2)
                         {
-                            if (dv < Q_handle[{it.first, new_hop}].second)
+                            if (Q_handle.find({it.first, new_hop}) != Q_handle.end())//有记录过
                             {
-                                auto ptr = Q_handle[{it.first, new_hop}].first;
-                                Q_handle[{it.first, new_hop}].second = dv;
-                                Q.update(ptr, new_node);
+                                if (dv < Q_handle[{it.first, new_hop}].second)
+                                {
+                                    auto ptr = Q_handle[{it.first, new_hop}].first;
+                                    HBPLL_v1_node new_node = {it.first, temp.vertex,new_hop, dv};
+                                    new_node.priority_value = dv;
+                                    Q_handle[{it.first, new_hop}].second = dv;
+                                    Q.update(ptr, new_node);
+                                }
                             }
-                        }
-                        else
-                        {
-                            Q_handle[{it.first, new_node.hop}] = {Q.push(new_node), dv};
+                            else
+                            {
+                                HBPLL_v1_node new_node = {it.first, temp.vertex, new_hop, dv};
+                                Q_handle[{it.first, new_node.hop}] = {Q.push(new_node), dv};
+                            }
+                            // 其中
+                            if (check1)//更新最短距离
+                            {
+                                dist_hop_599[used_id][it.first] = pair<double, int>(dv, new_hop);
+                                dist_hop_changes.push(it.first);
+                            }
                         }
                     }
                 }
